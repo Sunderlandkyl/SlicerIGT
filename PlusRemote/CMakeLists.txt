@@ -1,6 +1,8 @@
 #-----------------------------------------------------------------------------
 set(MODULE_NAME PlusRemote)
 
+string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
+
 #-----------------------------------------------------------------------------
 set(MODULE_PYTHON_SCRIPTS
   ${MODULE_NAME}.py
@@ -15,6 +17,15 @@ set(MODULE_PYTHON_RESOURCES
   Resources/Icons/VisibleOn.png
   )
 
+set(MODULE_TARGET_LIBRARIES
+  vtkSlicerPlusRemoteModuleMRML
+  ${QT_LIBRARIES}
+  qMRMLWidgets
+  MRMLLogic
+  MRMLDisplayableManager
+  qSlicerBaseQTCore
+  )
+
 #-----------------------------------------------------------------------------
 slicerMacroBuildScriptedModule(
   NAME ${MODULE_NAME}
@@ -22,6 +33,9 @@ slicerMacroBuildScriptedModule(
   RESOURCES ${MODULE_PYTHON_RESOURCES}
   # WITH_GENERIC_TESTS # TODO: enable this when module directories are properly added in the slicerMacroBuildScriptedModule macro
   )
+
+#-----------------------------------------------------------------------------
+add_subdirectory(MRML)
 
 #-----------------------------------------------------------------------------
 if(BUILD_TESTING)
