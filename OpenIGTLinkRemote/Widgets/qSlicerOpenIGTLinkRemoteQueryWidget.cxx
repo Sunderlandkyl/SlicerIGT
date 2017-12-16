@@ -15,6 +15,9 @@
 
 ==============================================================================*/
 
+// igtlio includes
+#include <igtlioLogic.h>
+
 // Qt includes
 #include <QDebug>
 #include <QList>
@@ -192,7 +195,7 @@ qSlicerOpenIGTLinkRemoteQueryWidget::~qSlicerOpenIGTLinkRemoteQueryWidget()
     this, SLOT(onMetadataQueryResponseReceived()));
   if (d->connectorNode)
   {
-    qvtkDisconnect(d->connectorNode, vtkMRMLIGTLConnectorNode::NewDeviceEvent,
+    qvtkDisconnect(d->connectorNode, igtlio::Logic::NewDeviceEvent,
       this, SLOT(onNewDeviceAdded(vtkObject*, void*)));
   }
 }
@@ -260,7 +263,7 @@ void qSlicerOpenIGTLinkRemoteQueryWidget::setConnectorNode(vtkMRMLNode* node)
     return;
   }
 
-  qvtkReconnect(d->connectorNode, cnode, vtkMRMLIGTLConnectorNode::NewDeviceEvent,
+  qvtkReconnect(d->connectorNode, cnode, igtlio::Logic::NewDeviceEvent,
     this, SLOT(onNewDeviceAdded(vtkObject*, void*)));
   d->connectorNode = cnode;
 
