@@ -62,6 +62,9 @@ public:
   ///     cmd.AddObserver(slicer.modulelogic.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent, notificationMethod)
   bool SendCommand(vtkSlicerOpenIGTLinkCommand* command, const char* connectorNodeId);
 
+  /// TODO:REMOVE
+  bool SendCommand(std::string connectorNodeId, std::string device_id, std::string command, std::string content);
+
   /// Cancel a command: removes from the OpenIGTLink connector's query queue, removes the
   /// association with the query node (so that it is reusable for sending another command),
   /// and sets the command state to cancelled.
@@ -80,6 +83,9 @@ protected:
 
   /// Receives all the events fired by the nodes.
   virtual void ProcessMRMLNodesEvents(vtkObject* caller, unsigned long event, void * callData);
+
+  /// Process device events
+  virtual void ProcessDeviceEvents(vtkObject* caller, unsigned long event, void * callData);
 
   vtkMRMLIGTLQueryNode* GetCommandQueryNode(vtkSlicerOpenIGTLinkCommand* command);
   void ReleaseCommandQueryNode(vtkMRMLIGTLQueryNode* commandQueryNode);

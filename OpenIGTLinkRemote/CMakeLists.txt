@@ -7,6 +7,8 @@ string(TOUPPER ${MODULE_NAME} MODULE_NAME_UPPER)
 
 find_package(OpenIGTLinkIF REQUIRED)
 
+find_package(OpenIGTLinkIO REQUIRED)
+
 #-----------------------------------------------------------------------------
 add_subdirectory(MRML)
 add_subdirectory(Logic)
@@ -23,6 +25,7 @@ set(MODULE_INCLUDE_DIRECTORIES
   ${CMAKE_CURRENT_BINARY_DIR}/Logic
   ${CMAKE_CURRENT_SOURCE_DIR}/Widgets
   ${CMAKE_CURRENT_BINARY_DIR}/Widgets
+  ${OpenIGTLinkIO_INCLUDE_DIRS}
   )
 
 set(MODULE_SRCS
@@ -37,6 +40,7 @@ set(MODULE_MOC_SRCS
 set(MODULE_TARGET_LIBRARIES
   vtkSlicer${MODULE_NAME}ModuleLogic
   qSlicer${MODULE_NAME}ModuleWidgets
+  ${OpenIGTLinkIO_LIBRARIES}
   )
 
 set(MODULE_RESOURCES

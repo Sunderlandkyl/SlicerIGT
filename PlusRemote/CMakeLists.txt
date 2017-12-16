@@ -13,6 +13,7 @@ set(MODULE_PYTHON_RESOURCES
   Resources/Icons/icon_Record.png
   Resources/Icons/icon_Stop.png
   Resources/Icons/icon_Wait.png
+  Resources/Icons/icon_Connect.png
   Resources/Icons/VisibleOff.png
   Resources/Icons/VisibleOn.png
   )

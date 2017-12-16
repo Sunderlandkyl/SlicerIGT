@@ -558,12 +558,19 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     #self.startServerButton.setText("  Launch Server")
     #self.startServerButton.setText("  Launching...")
     #self.startServerButton.setText("  Stop Server")
-    self.startServerButton.setCheckable(True)
+    #self.startServerButton.setCheckable(True)
     self.startServerButton.setIcon(self.connectIcon)
-    self.startServerButton.setEnabled(False)
+    self.startServerButton.setEnabled(True)
     self.startServerButton.setToolTip("If clicked, start server")
     self.startServerButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
     serverLauncherControlsLayout.addWidget(self.startServerButton)
+
+    self.stopServerButton = qt.QPushButton("  Stop Server")
+    self.stopServerButton.setIcon(self.connectIcon)
+    self.stopServerButton.setEnabled(True)
+    self.stopServerButton.setToolTip("If clicked, stop server")
+    self.stopServerButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
+    serverLauncherControlsLayout.addWidget(self.stopServerButton)
 
     self.serverStatus = qt.QMessageBox()
     self.serverStatus.setIcon(qt.QMessageBox.Information)
@@ -627,6 +634,9 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.onConnectorNodeSelected()
     self.createDefaultParameterSet()
     self.onParameterSetSelected()
+
+    self.startServerButton.connect('clicked(bool)', self.launchServer)
+    self.stopServerButton.connect('clicked(bool)', self.stopServer)
 
 #
 # Parameter set saving and reloading
@@ -713,6 +723,21 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
       # Enable/disable buttons based on connector node status (when we updated the GUI the update signal was blocked)
       self.onConnectorNodeSelected()
 
+  def launchServer(self):
+    self.cmdLaunchServer = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdLaunchServer.SetCommandTimeoutSec(5);
+    self.cmdLaunchServer.SetCommandName('StartServer')
+    self.cmdLaunchServer.SetCommandAttribute('DeviceType','COMMAND')
+    configFileString = '<PlusConfiguration version=\"2.0\">  <DataCollection StartupDelaySec=\"1.0\" >    <DeviceSet       Name=\"PlusServer: Media Foundation video capture device - color\"      Description=\"Broadcasting acquired video through OpenIGTLink\" />    <Device      Id=\"VideoDevice\"       Type=\"MmfVideo\"       FrameSize=\"640 480\"      VideoFormat=\"YUY2\"      CaptureDeviceId=\"0\" >      <DataSources>        <DataSource Type=\"Video\" Id=\"Video\" PortUsImageOrientation=\"MF\" ImageType=\"RGB_COLOR\"  />      </DataSources>            <OutputChannels>        <OutputChannel Id=\"VideoStream\" VideoDataSourceId=\"Video\" />      </OutputChannels>    </Device>    <Device      Id=\"CaptureDevice\"      Type=\"VirtualCapture\"      BaseFilename=\"RecordingTest.mha\"      EnableCapturingOnStart=\"FALSE\" >      <InputChannels>        <InputChannel Id=\"VideoStream\" />      </InputChannels>    </Device>  </DataCollection>  <CoordinateDefinitions>    <Transform From=\"Image\" To=\"Reference\"      Matrix=\"        0.2 0.0 0.0 0.0        0.0 0.2 0.0 0.0        0.0 0.0 0.2 0.0                0 0 0 1\" />  </CoordinateDefinitions>    <PlusOpenIGTLinkServer     MaxNumberOfIgtlMessagesToSend=\"1\"     MaxTimeSpentWithProcessingMs=\"50\"     ListeningPort=\"18944\"     SendValidTransformsOnly=\"true\"     OutputChannelId=\"VideoStream\" >     <DefaultClientInfo>       <MessageTypes>         <Message Type=\"IMAGE\" />      </MessageTypes>      <ImageNames>        <Image Name=\"Image\" EmbeddedTransformToFrame=\"Reference\" />      </ImageNames>    </DefaultClientInfo>  </PlusOpenIGTLinkServer></PlusConfiguration>'
+    slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_1', 'StartServer', configFileString)
+
+  def stopServer(self):
+    configFileString = '<PlusConfiguration version=\"2.0\">  <DataCollection StartupDelaySec=\"1.0\" >    <DeviceSet       Name=\"PlusServer: Media Foundation video capture device - color\"      Description=\"Broadcasting acquired video through OpenIGTLink\" />    <Device      Id=\"VideoDevice\"       Type=\"MmfVideo\"       FrameSize=\"640 480\"      VideoFormat=\"YUY2\"      CaptureDeviceId=\"0\" >      <DataSources>        <DataSource Type=\"Video\" Id=\"Video\" PortUsImageOrientation=\"MF\" ImageType=\"RGB_COLOR\"  />      </DataSources>            <OutputChannels>        <OutputChannel Id=\"VideoStream\" VideoDataSourceId=\"Video\" />      </OutputChannels>    </Device>    <Device      Id=\"CaptureDevice\"      Type=\"VirtualCapture\"      BaseFilename=\"RecordingTest.mha\"      EnableCapturingOnStart=\"FALSE\" >      <InputChannels>        <InputChannel Id=\"VideoStream\" />      </InputChannels>    </Device>  </DataCollection>  <CoordinateDefinitions>    <Transform From=\"Image\" To=\"Reference\"      Matrix=\"        0.2 0.0 0.0 0.0        0.0 0.2 0.0 0.0        0.0 0.0 0.2 0.0                0 0 0 1\" />  </CoordinateDefinitions>    <PlusOpenIGTLinkServer     MaxNumberOfIgtlMessagesToSend=\"1\"     MaxTimeSpentWithProcessingMs=\"50\"     ListeningPort=\"18944\"     SendValidTransformsOnly=\"true\"     OutputChannelId=\"VideoStream\" >     <DefaultClientInfo>       <MessageTypes>         <Message Type=\"IMAGE\" />      </MessageTypes>      <ImageNames>        <Image Name=\"Image\" EmbeddedTransformToFrame=\"Reference\" />      </ImageNames>    </DefaultClientInfo>  </PlusOpenIGTLinkServer></PlusConfiguration>'
+    slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_2', 'StopServer', configFileString)
+
+  def onTEST(caller, eventId, callData):
+    print "TEST"
+
   def updateParameterNodeFromGui(self):
     # Update parameter node value to save when user change value in the interface
 
@@ -765,10 +790,10 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
         self.onConnectorNodeDisconnected(None, None, True)
 
       # Add observers for connect/disconnect events
-      events = [[slicer.vtkMRMLIGTLConnectorNode.ConnectedEvent, self.onConnectorNodeConnected], [slicer.vtkMRMLIGTLConnectorNode.DisconnectedEvent, self.onConnectorNodeDisconnected]]
-      for tagEventHandler in events:
-        connectorNodeObserverTag = self.connectorNode.AddObserver(tagEventHandler[0], tagEventHandler[1])
-        self.connectorNodeObserverTagList.append(connectorNodeObserverTag)
+      #events = [[slicer.vtkMRMLIGTLConnectorNode.ConnectedEvent, self.onConnectorNodeConnected], [slicer.vtkMRMLIGTLConnectorNode.DisconnectedEvent, self.onConnectorNodeDisconnected]]
+      #for tagEventHandler in events:
+      #  connectorNodeObserverTag = self.connectorNode.AddObserver(tagEventHandler[0], tagEventHandler[1])
+      #  self.connectorNodeObserverTagList.append(connectorNodeObserverTag)
 
     else:
 

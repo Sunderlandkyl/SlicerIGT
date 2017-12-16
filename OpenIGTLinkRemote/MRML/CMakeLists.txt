@@ -12,6 +12,7 @@ set(${KIT}_INCLUDE_DIRECTORIES
   ${vtkSlicerOpenIGTLinkIFModuleMRML_BINARY_DIR}
   ${vtkSlicerAnnotationsModuleMRML_SOURCE_DIR}
   ${vtkSlicerAnnotationsModuleMRML_BINARY_DIR}
+  ${OpenIGTLinkIO_INCLUDE_DIRS}
   )
 
 set(${KIT}_SRCS
@@ -23,6 +24,7 @@ set(${KIT}_TARGET_LIBRARIES
   ${OpenIGTLink_LIBRARIES}
   ${MRML_LIBRARIES}
 #  vtkSlicerOpenIGTLinkIFModuleMRML
+  ${OpenIGTLinkIO_LIBRARIES}
   )
 
 #-----------------------------------------------------------------------------
