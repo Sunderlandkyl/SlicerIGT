@@ -239,7 +239,7 @@ bool vtkSlicerOpenIGTLinkRemoteLogic::SendCommand(vtkSlicerOpenIGTLinkCommand* c
 }
 
 //----------------------------------------------------------------------------
-bool vtkSlicerOpenIGTLinkRemoteLogic::SendCommand(std::string connectorNodeId, std::string deviceId, std::string command, std::string content)
+vtkObject* vtkSlicerOpenIGTLinkRemoteLogic::SendCommand(std::string connectorNodeId, std::string deviceId, std::string command, std::string content, vtkCallbackCommand* responseCallback)
 {
   vtkMRMLIGTLConnectorNode* connectorNode = vtkMRMLIGTLConnectorNode::SafeDownCast(this->GetMRMLScene()->GetNodeByID(connectorNodeId));
   if (connectorNode == NULL)
@@ -253,10 +253,15 @@ bool vtkSlicerOpenIGTLinkRemoteLogic::SendCommand(std::string connectorNodeId, s
   commandIdStream << this->CommandCounter;
   std::string commandId = commandIdStream.str();
 
-  igtlio::DevicePointer responseDevice = connectorNode->SendCommand("CMD" + commandId, command, content, igtlio::ASYNCHRONOUS);
+  igtlio::DevicePointer responseDevice = connectorNode->SendCommand("CMD_" + commandId, command, content, igtlio::ASYNCHRONOUS);
+  //responseDevice->CommandResponseReceivedEvent
   responseDevice->AddObserver(igtlio::Device::CommandResponseReceivedEvent, this, &vtkSlicerOpenIGTLinkRemoteLogic::ProcessDeviceEvents);
-  
-  return true;
+  if (responseCallback)
+  {
+    responseDevice->AddObserver(igtlio::Device::CommandResponseReceivedEvent, responseCallback);
+  }
+
+  return responseDevice;
 }
 
 //----------------------------------------------------------------------------

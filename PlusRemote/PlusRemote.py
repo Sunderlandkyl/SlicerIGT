@@ -122,6 +122,80 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.volumeReconstructorIDSelector.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
     parametersControlsLayout.addWidget(self.volumeReconstructorIDSelector)
 
+    # Server Launcher Control
+    serverLauncherCollapsibleButton = ctk.ctkCollapsibleButton()
+    serverLauncherCollapsibleButton.text = "Plus Server Launcher Control"
+    self.layout.addWidget(serverLauncherCollapsibleButton)
+    serverLauncherLayout = qt.QFormLayout(serverLauncherCollapsibleButton)
+
+    self.selectConfigFileButton = qt.QPushButton()
+    #self.selectConfigFileButton.setIcon(self)
+    self.selectConfigFileButton.text = "Load"
+    self.selectConfigFileButton.setEnabled(True)
+    #self.selectConfigFileButton.setToolTip("If clicked, start server")
+    #self.selectConfigFileButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Expanding)
+    serverLauncherLayout.addRow("Load config file:", self.selectConfigFileButton)
+
+    self.configFileSelector = slicer.qMRMLNodeComboBox()
+    self.configFileSelector.nodeTypes = ( ("vtkMRMLTextNode"), "" ) #TODO: add correct type of node and/or implement
+    self.configFileSelector.selectNodeUponCreation = True
+    self.configFileSelector.addEnabled = False
+    self.configFileSelector.removeEnabled = True
+    self.configFileSelector.noneEnabled = False
+    self.configFileSelector.showHidden = False
+    self.configFileSelector.showChildNodeTypes = False
+    self.configFileSelector.setMRMLScene( slicer.mrmlScene )
+    self.configFileSelector.setToolTip( "Pick config file" )
+    serverLauncherLayout.addRow("Config File: ", self.configFileSelector)
+
+    #Move to the same row, use grid and box layouts
+    serverLauncherControlsLayout = qt.QHBoxLayout()
+    serverLauncherLayout.addRow(serverLauncherControlsLayout)
+
+    self.serverRunning = False
+    self.waitingForResponse = False
+    self.startStopServerButton = qt.QPushButton()
+    self.startStopServerButton.setIcon(self.connectIcon)
+    self.startStopServerButton.setEnabled(True)
+    self.startStopServerButton.setToolTip("If clicked, start server")
+    self.startStopServerButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
+    serverLauncherControlsLayout.addWidget(self.startStopServerButton)
+
+    self.serverStatus = qt.QMessageBox()
+    self.serverStatus.setIcon(qt.QMessageBox.Information)
+    self.serverStatus.setToolTip("Server status")
+    self.serverStatus.setStandardButtons(qt.QMessageBox.NoButton)
+    self.serverStatus.setEnabled(False)
+    serverLauncherControlsLayout.addWidget(self.serverStatus)
+
+    self.VERBOSE_ERROR=1
+    self.VERBOSE_WARNING=2
+    self.VERBOSE_INFO=3
+    self.VERBOSE_DEBUG=4
+    self.VERBOSE_TRACE=5
+
+    self.verbosityComboBox=qt.QComboBox()
+    self.verbosityComboBox.setMaximumSize(200, 1000)
+    self.verbosityComboBox.addItem(str("Error"), self.VERBOSE_ERROR)
+    self.verbosityComboBox.addItem(str("Warning"), self.VERBOSE_WARNING)
+    self.verbosityComboBox.addItem(str("Info"), self.VERBOSE_INFO)
+    self.verbosityComboBox.addItem(str("Debug"), self.VERBOSE_DEBUG)
+    self.verbosityComboBox.addItem(str("Trace"), self.VERBOSE_TRACE)
+    serverLauncherLayout.addRow("Server Log Level:", self.verbosityComboBox)
+
+    self.serverLogCollapsibleGroupBox = ctk.ctkCollapsibleGroupBox()
+    self.serverLogCollapsibleGroupBox.setTitle("Server log")
+    self.serverLogCollapsibleGroupBox.collapsed = True
+    serverLogLayout = qt.QVBoxLayout()
+    self.serverLogCollapsibleGroupBox.setLayout(serverLogLayout)
+    serverLauncherLayout.addRow(self.serverLogCollapsibleGroupBox)
+
+    self.serverLogBox = qt.QPlainTextEdit()
+    self.serverLogBox.setReadOnly(True)
+    serverLogLayout.addWidget(self.serverLogBox)
+
+    self.updatePlusServerRemoteControlButtons()
+
     # Recording
     recordingCollapsibleButton = ctk.ctkCollapsibleButton()
     recordingCollapsibleButton.text = "Recording"
@@ -518,67 +592,6 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.replyBox.setReadOnly(True)
     replyLayout.addRow(self.replyBox)
 
-    # Server Launcher Control
-    serverLauncherCollapsibleButton = ctk.ctkCollapsibleButton()
-    serverLauncherCollapsibleButton.text = "Server Control"
-    self.layout.addWidget(serverLauncherCollapsibleButton)
-    serverLauncherLayout = qt.QFormLayout(serverLauncherCollapsibleButton)
-
-    self.configFileSelector = slicer.qMRMLNodeComboBox()
-    self.configFileSelector.nodeTypes = ( ("vtkMRMLPlusConfigFileNode"), "" ) #TODO: implement and add correct type of node
-    self.configFileSelector.selectNodeUponCreation = True
-    self.configFileSelector.addEnabled = False
-    self.configFileSelector.removeEnabled = True
-    self.configFileSelector.noneEnabled = False
-    self.configFileSelector.showHidden = False
-    self.configFileSelector.showChildNodeTypes = False
-    self.configFileSelector.setMRMLScene( slicer.mrmlScene )
-    self.configFileSelector.setToolTip( "Pick config file" )
-    serverLauncherLayout.addRow("Config File: ", self.configFileSelector)
-
-    #Move to the same row, use grid and box layouts
-    serverHostControlsLayout = qt.QHBoxLayout()
-    serverLauncherLayout.addRow(serverHostControlsLayout)
-
-    self.hostnameLabel = qt.QLabel("Hostname:")
-    serverHostControlsLayout.addWidget(self.hostnameLabel)
-    self.hostnameBox = qt.QLineEdit("localhost")
-    serverHostControlsLayout.addWidget(self.hostnameBox)
-
-    self.portLabel = qt.QLabel("Port:")
-    serverHostControlsLayout.addWidget(self.portLabel)
-    self.hostnameBox = qt.QLineEdit("18904")
-    serverHostControlsLayout.addWidget(self.hostnameBox)
-
-    #Move to the same row, use grid and box layouts
-    serverLauncherControlsLayout = qt.QHBoxLayout()
-    serverLauncherLayout.addRow(serverLauncherControlsLayout)
-
-    self.startServerButton = qt.QPushButton("  Launch Server")
-    #self.startServerButton.setText("  Launch Server")
-    #self.startServerButton.setText("  Launching...")
-    #self.startServerButton.setText("  Stop Server")
-    #self.startServerButton.setCheckable(True)
-    self.startServerButton.setIcon(self.connectIcon)
-    self.startServerButton.setEnabled(True)
-    self.startServerButton.setToolTip("If clicked, start server")
-    self.startServerButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
-    serverLauncherControlsLayout.addWidget(self.startServerButton)
-
-    self.stopServerButton = qt.QPushButton("  Stop Server")
-    self.stopServerButton.setIcon(self.connectIcon)
-    self.stopServerButton.setEnabled(True)
-    self.stopServerButton.setToolTip("If clicked, stop server")
-    self.stopServerButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
-    serverLauncherControlsLayout.addWidget(self.stopServerButton)
-
-    self.serverStatus = qt.QMessageBox()
-    self.serverStatus.setIcon(qt.QMessageBox.Information)
-    self.serverStatus.setToolTip("Server status")
-    self.serverStatus.setStandardButtons(qt.QMessageBox.NoButton)
-    self.serverStatus.setEnabled(False)
-    serverLauncherControlsLayout.addWidget(self.serverStatus)
-
     # connections
 
     self.linkInputSelector.connect("nodeActivated(vtkMRMLNode*)", self.onConnectorNodeSelected)
@@ -635,8 +648,8 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.createDefaultParameterSet()
     self.onParameterSetSelected()
 
-    self.startServerButton.connect('clicked(bool)', self.launchServer)
-    self.stopServerButton.connect('clicked(bool)', self.stopServer)
+    self.startStopServerButton.connect('clicked(bool)', self.onStartStopServerButton)
+    self.selectConfigFileButton.connect('clicked(bool)', self.onSelectConfigFileButton)
 
 #
 # Parameter set saving and reloading
@@ -723,20 +736,99 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
       # Enable/disable buttons based on connector node status (when we updated the GUI the update signal was blocked)
       self.onConnectorNodeSelected()
 
-  def launchServer(self):
-    self.cmdLaunchServer = slicer.vtkSlicerOpenIGTLinkCommand()
-    self.cmdLaunchServer.SetCommandTimeoutSec(5);
-    self.cmdLaunchServer.SetCommandName('StartServer')
-    self.cmdLaunchServer.SetCommandAttribute('DeviceType','COMMAND')
-    configFileString = '<PlusConfiguration version=\"2.0\">  <DataCollection StartupDelaySec=\"1.0\" >    <DeviceSet       Name=\"PlusServer: Media Foundation video capture device - color\"      Description=\"Broadcasting acquired video through OpenIGTLink\" />    <Device      Id=\"VideoDevice\"       Type=\"MmfVideo\"       FrameSize=\"640 480\"      VideoFormat=\"YUY2\"      CaptureDeviceId=\"0\" >      <DataSources>        <DataSource Type=\"Video\" Id=\"Video\" PortUsImageOrientation=\"MF\" ImageType=\"RGB_COLOR\"  />      </DataSources>            <OutputChannels>        <OutputChannel Id=\"VideoStream\" VideoDataSourceId=\"Video\" />      </OutputChannels>    </Device>    <Device      Id=\"CaptureDevice\"      Type=\"VirtualCapture\"      BaseFilename=\"RecordingTest.mha\"      EnableCapturingOnStart=\"FALSE\" >      <InputChannels>        <InputChannel Id=\"VideoStream\" />      </InputChannels>    </Device>  </DataCollection>  <CoordinateDefinitions>    <Transform From=\"Image\" To=\"Reference\"      Matrix=\"        0.2 0.0 0.0 0.0        0.0 0.2 0.0 0.0        0.0 0.0 0.2 0.0                0 0 0 1\" />  </CoordinateDefinitions>    <PlusOpenIGTLinkServer     MaxNumberOfIgtlMessagesToSend=\"1\"     MaxTimeSpentWithProcessingMs=\"50\"     ListeningPort=\"18944\"     SendValidTransformsOnly=\"true\"     OutputChannelId=\"VideoStream\" >     <DefaultClientInfo>       <MessageTypes>         <Message Type=\"IMAGE\" />      </MessageTypes>      <ImageNames>        <Image Name=\"Image\" EmbeddedTransformToFrame=\"Reference\" />      </ImageNames>    </DefaultClientInfo>  </PlusOpenIGTLinkServer></PlusConfiguration>'
-    slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_1', 'StartServer', configFileString)
 
-  def stopServer(self):
-    configFileString = '<PlusConfiguration version=\"2.0\">  <DataCollection StartupDelaySec=\"1.0\" >    <DeviceSet       Name=\"PlusServer: Media Foundation video capture device - color\"      Description=\"Broadcasting acquired video through OpenIGTLink\" />    <Device      Id=\"VideoDevice\"       Type=\"MmfVideo\"       FrameSize=\"640 480\"      VideoFormat=\"YUY2\"      CaptureDeviceId=\"0\" >      <DataSources>        <DataSource Type=\"Video\" Id=\"Video\" PortUsImageOrientation=\"MF\" ImageType=\"RGB_COLOR\"  />      </DataSources>            <OutputChannels>        <OutputChannel Id=\"VideoStream\" VideoDataSourceId=\"Video\" />      </OutputChannels>    </Device>    <Device      Id=\"CaptureDevice\"      Type=\"VirtualCapture\"      BaseFilename=\"RecordingTest.mha\"      EnableCapturingOnStart=\"FALSE\" >      <InputChannels>        <InputChannel Id=\"VideoStream\" />      </InputChannels>    </Device>  </DataCollection>  <CoordinateDefinitions>    <Transform From=\"Image\" To=\"Reference\"      Matrix=\"        0.2 0.0 0.0 0.0        0.0 0.2 0.0 0.0        0.0 0.0 0.2 0.0                0 0 0 1\" />  </CoordinateDefinitions>    <PlusOpenIGTLinkServer     MaxNumberOfIgtlMessagesToSend=\"1\"     MaxTimeSpentWithProcessingMs=\"50\"     ListeningPort=\"18944\"     SendValidTransformsOnly=\"true\"     OutputChannelId=\"VideoStream\" >     <DefaultClientInfo>       <MessageTypes>         <Message Type=\"IMAGE\" />      </MessageTypes>      <ImageNames>        <Image Name=\"Image\" EmbeddedTransformToFrame=\"Reference\" />      </ImageNames>    </DefaultClientInfo>  </PlusOpenIGTLinkServer></PlusConfiguration>'
-    slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_2', 'StopServer', configFileString)
+  def updatePlusServerRemoteControlButtons(self):
+    #TODO: better way to manage button state?
+    self.verbosityComboBox.enabled = False
+    self.selectConfigFileButton.enabled = False
+    self.configFileSelector.enabled = False
+    self.serverStatus.enabled = True
+    if (self.waitingForResponse):
+      self.startStopServerButton.enabled = False
+      self.serverStatus.enabled = False
+      if (self.serverRunning):
+        self.startStopServerButton.text = "  Stopping..."
+      else:
+        self.startStopServerButton.text = "  Launching..."
+    else:
+      self.startStopServerButton.enabled = True
+      if (self.serverRunning):
+        self.startStopServerButton.text = "  Stop Server"
+      else:
+        self.startStopServerButton.text = "  Launch Server"
+        self.serverStatus.enabled = False
+        self.verbosityComboBox.enabled = True
+        self.selectConfigFileButton.enabled = False
+        self.configFileSelector.enabled = True
 
-  def onTEST(caller, eventId, callData):
-    print "TEST"
+
+  def onSelectConfigFileButton(self):
+    filename = qt.QFileDialog.getOpenFileName(slicer.util.mainWindow(), "Select Config File", "", "Config Files (*.xml);;AllFiles (*)")
+    head, tail = os.path.split(filename)
+
+    file = open(filename, 'r')
+    text = file.read()
+    file.close()
+
+    textNode = slicer.vtkMRMLTextNode()
+    textNode.SetName(tail)
+    textNode.SetText(text)
+    slicer.mrmlScene.AddNode(textNode)
+
+
+  def onStartStopServerButton(self):
+    if (self.serverRunning):
+      self.StopServer()
+    else:
+      self.StartServer()
+
+
+  def StartServer(self):
+    if (self.connectorNode == None):
+      return
+
+    configFileNode = self.configFileSelector.currentNode()
+    if (configFileNode == None):
+      return
+
+    configFileString = configFileNode.GetText()
+    c = ConfigFileMessage(configFileString, self.verbosityComboBox.currentData)
+    print c.getMessage()
+    commandDevice = slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_1', 'StartServer', c.getMessage())
+    #commandDevice = slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_1', 'StartServer', configFileString)
+    responseEvent = 119002
+    commandDevice.AddObserver(responseEvent, self.onStartServerResponse)
+    self.waitingForResponse = True
+    self.updatePlusServerRemoteControlButtons()
+
+
+  def onStartServerResponse(self, responseDevice, event):
+    #TODO: should check if success
+    self.waitingForResponse = False
+    self.serverRunning = True
+    self.updatePlusServerRemoteControlButtons()
+    #text = str(self) + " !!!! " + str(eventId) + " !!!! " + str(callData)
+    self.serverLogBox.setPlainText(responseDevice)
+
+
+  def StopServer(self):
+    commandString = '''
+<Command>
+  <StopServer/>
+</Command>
+'''
+    commandDevice = slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_2', 'StopServer', commandString)
+    responseEvent = 119002
+    commandDevice.AddObserver(responseEvent, self.onStopServerResponse)
+    self.waitingForResponse = True
+    self.updatePlusServerRemoteControlButtons()
+
+  def onStopServerResponse(self, responseDevice, event):
+    #TODO: should check if failure
+    self.waitingForResponse = False
+    self.serverRunning = False
+    self.updatePlusServerRemoteControlButtons()
+    self.serverLogBox.setPlainText(responseDevice)
 
   def updateParameterNodeFromGui(self):
     # Update parameter node value to save when user change value in the interface
@@ -1570,3 +1662,19 @@ class PlusRemoteLogic(ScriptedLoadableModuleLogic):
     self.cmdSaveConfig.SetCommandAttribute('Filename', filename)
     self.executeCommand(self.cmdSaveConfig, connectorNodeId, responseCallbackMethod)
 
+class ConfigFileMessage():
+  def __init__(self, configFileString, verbosity):
+   self.configFileString = configFileString
+   self.verbosity = verbosity
+
+  def getMessage(self):
+    message = '''
+<Command>
+  <StartServer>
+    {0}
+    <LogLevel Level="{1}"/>
+  </StartServer>
+</Command>
+'''
+    message = message.format(self.configFileString, self.verbosity)
+    return message
