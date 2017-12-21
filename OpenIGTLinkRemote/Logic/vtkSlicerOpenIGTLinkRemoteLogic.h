@@ -62,8 +62,8 @@ public:
   ///     cmd.AddObserver(slicer.modulelogic.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent, notificationMethod)
   bool SendCommand(vtkSlicerOpenIGTLinkCommand* command, const char* connectorNodeId);
 
-  /// TODO:REMOVE
-  bool SendCommand(std::string connectorNodeId, std::string device_id, std::string command, std::string content);
+  /// TODO: Python can't wrap igtlio::DevicePointer, have to use object pointer instead
+  vtkObject* SendCommand(std::string connectorNodeId, std::string device_id, std::string command, std::string content, vtkCallbackCommand* responseCallback = NULL);
 
   /// Cancel a command: removes from the OpenIGTLink connector's query queue, removes the
   /// association with the query node (so that it is reusable for sending another command),
