@@ -12,8 +12,10 @@ set(${KIT}_INCLUDE_DIRECTORIES
 # Sources
 
 set(${KIT}_SRCS
-  vtkMRMLPlusConfigFileNode.cxx
-  vtkMRMLPlusConfigFileNode.h
+  vtkMRMLTextStorageNode.cxx
+  vtkMRMLTextStorageNode.h
+  #vtkMRMLPlusConfigFileNode.cxx
+  #vtkMRMLPlusConfigFileNode.h
   )
 
 SET (${KIT}_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR} CACHE INTERNAL "" FORCE)
