@@ -134,7 +134,7 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.selectConfigFileButton.setEnabled(True)
     #self.selectConfigFileButton.setToolTip("If clicked, start server")
     #self.selectConfigFileButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Expanding)
-    serverLauncherLayout.addRow("Load config file:", self.selectConfigFileButton)
+    serverLauncherLayout.addRow("Load Config File:", self.selectConfigFileButton)
 
     self.configFileSelector = slicer.qMRMLNodeComboBox()
     self.configFileSelector.nodeTypes = ( ("vtkMRMLTextNode"), "" ) #TODO: add correct type of node and/or implement
@@ -168,20 +168,20 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.serverStatus.setEnabled(False)
     serverLauncherControlsLayout.addWidget(self.serverStatus)
 
-    self.VERBOSE_ERROR=1
-    self.VERBOSE_WARNING=2
-    self.VERBOSE_INFO=3
-    self.VERBOSE_DEBUG=4
-    self.VERBOSE_TRACE=5
+    self.LOG_LEVEL_ERROR=1
+    self.LOG_LEVEL_WARNING=2
+    self.LOG_LEVEL_INFO=3
+    self.LOG_LEVEL_DEBUG=4
+    self.LOG_LEVEL_TRACE=5
 
-    self.verbosityComboBox=qt.QComboBox()
-    self.verbosityComboBox.setMaximumSize(200, 1000)
-    self.verbosityComboBox.addItem(str("Error"), self.VERBOSE_ERROR)
-    self.verbosityComboBox.addItem(str("Warning"), self.VERBOSE_WARNING)
-    self.verbosityComboBox.addItem(str("Info"), self.VERBOSE_INFO)
-    self.verbosityComboBox.addItem(str("Debug"), self.VERBOSE_DEBUG)
-    self.verbosityComboBox.addItem(str("Trace"), self.VERBOSE_TRACE)
-    serverLauncherLayout.addRow("Server Log Level:", self.verbosityComboBox)
+    self.logLevelComboBox=qt.QComboBox()
+    self.logLevelComboBox.setMaximumSize(200, 1000)
+    self.logLevelComboBox.addItem(str("Error"), self.LOG_LEVEL_ERROR)
+    self.logLevelComboBox.addItem(str("Warning"), self.LOG_LEVEL_WARNING)
+    self.logLevelComboBox.addItem(str("Info"), self.LOG_LEVEL_INFO)
+    self.logLevelComboBox.addItem(str("Debug"), self.LOG_LEVEL_DEBUG)
+    self.logLevelComboBox.addItem(str("Trace"), self.LOG_LEVEL_TRACE)
+    serverLauncherLayout.addRow("Server Log Level:", self.logLevelComboBox)
 
     self.serverLogCollapsibleGroupBox = ctk.ctkCollapsibleGroupBox()
     self.serverLogCollapsibleGroupBox.setTitle("Server log")
@@ -739,7 +739,7 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
 
   def updatePlusServerRemoteControlButtons(self):
     #TODO: better way to manage button state?
-    self.verbosityComboBox.enabled = False
+    self.logLevelComboBox.enabled = False
     self.selectConfigFileButton.enabled = False
     self.configFileSelector.enabled = False
     self.serverStatus.enabled = True
@@ -757,8 +757,8 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
       else:
         self.startStopServerButton.text = "  Launch Server"
         self.serverStatus.enabled = False
-        self.verbosityComboBox.enabled = True
-        self.selectConfigFileButton.enabled = False
+        self.logLevelComboBox.enabled = True
+        self.selectConfigFileButton.enabled = True
         self.configFileSelector.enabled = True
 
 
@@ -792,7 +792,7 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
       return
 
     configFileString = configFileNode.GetText()
-    c = ConfigFileMessage(configFileString, self.verbosityComboBox.currentData)
+    c = ConfigFileMessage(configFileString, self.logLevelComboBox.currentData)
     print c.getMessage()
     commandDevice = slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_1', 'StartServer', c.getMessage())
     #commandDevice = slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_1', 'StartServer', configFileString)
