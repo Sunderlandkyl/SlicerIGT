@@ -27,7 +27,7 @@ vtkMRMLNodeNewMacro(vtkMRMLTextStorageNode);
 //----------------------------------------------------------------------------
 vtkMRMLTextStorageNode::vtkMRMLTextStorageNode()
 {
-  this->AddFileName("E:\d\p\PR\PlusLibData\ConfigFiles\PlusDeviceSet_Server_MmfColorVideoCapture.xml");
+  this->AddFileName("E:/d/p/PR/PlusLibData/ConfigFiles/PlusDeviceSet_Server_MmfColorVideoCapture.xml");
 }
 
 //----------------------------------------------------------------------------

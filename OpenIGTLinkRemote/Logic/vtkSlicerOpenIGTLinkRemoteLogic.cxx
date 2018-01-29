@@ -264,6 +264,12 @@ vtkObject* vtkSlicerOpenIGTLinkRemoteLogic::SendCommand(std::string connectorNod
   return responseDevice;
 }
 
+std::string vtkSlicerOpenIGTLinkRemoteLogic::GetDeviceContents(vtkObject* device)
+{
+  igtlio::CommandDevicePointer command = reinterpret_cast<igtlio::CommandDevice*>(device);
+  return command->GetContent().content;
+}
+
 //----------------------------------------------------------------------------
 void vtkSlicerOpenIGTLinkRemoteLogic::ProcessDeviceEvents(vtkObject* caller, unsigned long event, void * callData)
 {

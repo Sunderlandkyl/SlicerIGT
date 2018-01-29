@@ -793,22 +793,49 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
 
     configFileString = configFileNode.GetText()
     c = ConfigFileMessage(configFileString, self.logLevelComboBox.currentData)
-    print c.getMessage()
     commandDevice = slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_1', 'StartServer', c.getMessage())
-    #commandDevice = slicer.modules.openigtlinkremote.logic().SendCommand(self.connectorNode.GetID(), 'CMD_1', 'StartServer', configFileString)
+
     responseEvent = 119002
-    commandDevice.AddObserver(responseEvent, self.onStartServerResponse)
+    #commandDevice.AddObserver(responseEvent, self.onStartServerResponse)
     self.waitingForResponse = True
     self.updatePlusServerRemoteControlButtons()
 
 
-  def onStartServerResponse(self, responseDevice, event):
+  @vtk.calldata_type(vtk.VTK_OBJECT)
+  def onStartServerResponse(self, obj, event, callData):
+    commandContents = slicer.modules.openigtlinkremote.logic().GetDeviceContents(callData)
+    rootElement = vtk.vtkXMLUtilities.ReadElementFromString(commandContents)
+    
+    startServerElement = rootElement.FindNestedElementWithName("StartServer")
+    if (not messageElement == None and not messageElement.GetAttribute("Success") == None):
+      success = messageElement.GetAttribute("Success")
+      if (success.lower() == "true"):
+        self.serverRunning = True
+      else:
+        self.serverRunning = False
+      
     #TODO: should check if success
     self.waitingForResponse = False
     self.serverRunning = True
     self.updatePlusServerRemoteControlButtons()
-    #text = str(self) + " !!!! " + str(eventId) + " !!!! " + str(callData)
-    self.serverLogBox.setPlainText(responseDevice)
+
+
+  @vtk.calldata_type(vtk.VTK_OBJECT)
+  def onCommandEvent(self, obj, event, callData):
+    commandContents = slicer.modules.openigtlinkremote.logic().GetDeviceContents(callData)
+
+    rootElement = vtk.vtkXMLUtilities.ReadElementFromString(commandContents)
+
+    print "CALLBACK"
+    
+    messageElement = rootElement.FindNestedElementWithName("Message")
+    if (not messageElement == None and not messageElement.GetAttribute("Text") == None):
+      messageText = messageElement.GetAttribute("Text")
+      self.serverLogBox.appendPlainText(messageText.replace('###NEWLINE###', '\n')[:-1])
+
+
+  def onServerStopped(self, obj, event, callData):
+    pass
 
 
   def StopServer(self):
@@ -828,7 +855,6 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.waitingForResponse = False
     self.serverRunning = False
     self.updatePlusServerRemoteControlButtons()
-    self.serverLogBox.setPlainText(responseDevice)
 
   def updateParameterNodeFromGui(self):
     # Update parameter node value to save when user change value in the interface
@@ -886,6 +912,13 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
       #for tagEventHandler in events:
       #  connectorNodeObserverTag = self.connectorNode.AddObserver(tagEventHandler[0], tagEventHandler[1])
       #  self.connectorNodeObserverTagList.append(connectorNodeObserverTag)
+      commandEvent = 119001
+      self.connectorNode.AddObserver(commandEvent, self.onCommandEvent)
+      self.connectorNodeObserverTagList.append(commandEvent)
+      commandResponseEvent = 119002
+      self.connectorNode.AddObserver(commandResponseEvent, self.onCommandEvent)
+      self.connectorNodeObserverTagList.append(commandResponseEvent)
+      self.serverLogBox.setPlainText("")
 
     else:
 

@@ -27,6 +27,8 @@
 #include "vtkSlicerOpenIGTLinkRemoteModuleLogicExport.h"
 #include <cstdlib>
 
+#include <igtlioDevice.h>
+
 class vtkMRMLIGTLQueryNode;
 class vtkSlicerOpenIGTLinkCommand;
 class vtkSlicerOpenIGTLinkIFLogic;
@@ -69,6 +71,8 @@ public:
   /// association with the query node (so that it is reusable for sending another command),
   /// and sets the command state to cancelled.
   bool CancelCommand(vtkSlicerOpenIGTLinkCommand* command);
+
+  std::string GetDeviceContents(vtkObject* device);
 
 protected:
   vtkSlicerOpenIGTLinkRemoteLogic();
