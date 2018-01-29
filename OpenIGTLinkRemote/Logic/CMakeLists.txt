@@ -5,8 +5,9 @@ set(KIT ${PROJECT_NAME})
 set(${KIT}_EXPORT_DIRECTIVE "VTK_SLICER_${MODULE_NAME_UPPER}_MODULE_LOGIC_EXPORT")
 
 set(${KIT}_INCLUDE_DIRECTORIES
-  ${vtkSlicerOpenIGTLinkIFModuleLogic_INCLUDE_DIRS}
   ${OpenIGTLinkIO_INCLUDE_DIRS}
+  ${OpenIGTLinkIF_ModuleLogic_INCLUDE_DIRS}
+  ${OpenIGTLinkIF_ModuleMRML_INCLUDE_DIRS}
   )
 
 set(${KIT}_SRCS
@@ -19,8 +20,8 @@ set(${KIT}_SRCS
 set(${KIT}_TARGET_LIBRARIES
   ${ITK_LIBRARIES}
   vtkSlicer${MODULE_NAME}ModuleMRML
-  vtkSlicerOpenIGTLinkIFModuleLogic
   ${OpenIGTLinkIO_LIBRARIES}
+  vtkSlicerOpenIGTLinkIFModuleLogic
   )
 
 #-----------------------------------------------------------------------------
