@@ -800,43 +800,54 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.waitingForResponse = True
     self.updatePlusServerRemoteControlButtons()
 
-
-  @vtk.calldata_type(vtk.VTK_OBJECT)
-  def onStartServerResponse(self, obj, event, callData):
-    commandContents = slicer.modules.openigtlinkremote.logic().GetDeviceContents(callData)
-    rootElement = vtk.vtkXMLUtilities.ReadElementFromString(commandContents)
-    
-    startServerElement = rootElement.FindNestedElementWithName("StartServer")
-    if (not messageElement == None and not messageElement.GetAttribute("Success") == None):
-      success = messageElement.GetAttribute("Success")
-      if (success.lower() == "true"):
-        self.serverRunning = True
-      else:
-        self.serverRunning = False
-      
-    #TODO: should check if success
-    self.waitingForResponse = False
-    self.serverRunning = True
-    self.updatePlusServerRemoteControlButtons()
-
-
   @vtk.calldata_type(vtk.VTK_OBJECT)
   def onCommandEvent(self, obj, event, callData):
     commandContents = slicer.modules.openigtlinkremote.logic().GetDeviceContents(callData)
 
     rootElement = vtk.vtkXMLUtilities.ReadElementFromString(commandContents)
 
-    print "CALLBACK"
-    
     messageElement = rootElement.FindNestedElementWithName("Message")
-    if (not messageElement == None and not messageElement.GetAttribute("Text") == None):
+    if (messageElement != None):
+      self.onMessageReceived(messageElement)
+
+    startServerElement = rootElement.FindNestedElementWithName("StartServer")
+    if (startServerElement != None):
+      self.onStartServer(startServerElement)
+
+    stopServerElement = rootElement.FindNestedElementWithName("StopServer")
+    if (stopServerElement != None):
+      self.onStopServer(stopServerElement)
+
+  # React to server start message. Response or command.
+  def onStartServer(self, startServerElement):
+    if (startServerElement.GetAttribute("Success") != None):
+      success = startServerElement.GetAttribute("Success")
+      if (success.lower() == "true"):
+        self.serverRunning = True
+      else:
+        self.serverRunning = False
+
+    #TODO: should check if success
+    self.waitingForResponse = False
+    self.updatePlusServerRemoteControlButtons()
+
+  # React to server stop message. Response or command.
+  def onStopServer(self, stopServerElement):
+    if (stopServerElement.GetAttribute("Success") != None):
+      success = stopServerElement.GetAttribute("Success")
+      if (success.lower() == "true"):
+        self.serverRunning = False
+      else:
+        self.serverRunning = True
+
+    #TODO: should check if success
+    self.waitingForResponse = False
+    self.updatePlusServerRemoteControlButtons()
+
+  def onMessageReceived(self, messageElement):
+    if (messageElement != None and messageElement.GetAttribute("Text") != None):
       messageText = messageElement.GetAttribute("Text")
       self.serverLogBox.appendPlainText(messageText.replace('###NEWLINE###', '\n')[:-1])
-
-
-  def onServerStopped(self, obj, event, callData):
-    pass
-
 
   def StopServer(self):
     commandString = '''
