@@ -315,6 +315,68 @@ void vtkSlicerOpenIGTLinkRemoteLogic::ProcessDeviceEvents(vtkObject* caller, uns
 }
 
 //----------------------------------------------------------------------------
+vtkObject* vtkSlicerOpenIGTLinkRemoteLogic::SendCommand(std::string connectorNodeId, std::string deviceId, std::string command, std::string content, vtkCallbackCommand* responseCallback)
+{
+  vtkMRMLIGTLConnectorNode* connectorNode = vtkMRMLIGTLConnectorNode::SafeDownCast(this->GetMRMLScene()->GetNodeByID(connectorNodeId));
+  if (connectorNode == NULL)
+  {
+    vtkErrorMacro("SendCommand could not cast MRML node to IGTLConnectorNode.");
+    return false;
+  }
+
+  (this->CommandCounter)++;
+  std::stringstream commandIdStream;
+  commandIdStream << this->CommandCounter;
+  std::string commandId = commandIdStream.str();
+
+  igtlio::DevicePointer responseDevice = connectorNode->SendCommand("CMD_" + commandId, command, content, igtlio::ASYNCHRONOUS);
+  //responseDevice->CommandResponseReceivedEvent
+  responseDevice->AddObserver(igtlio::Device::CommandResponseReceivedEvent, this, &vtkSlicerOpenIGTLinkRemoteLogic::ProcessDeviceEvents);
+  if (responseCallback)
+  {
+    responseDevice->AddObserver(igtlio::Device::CommandResponseReceivedEvent, responseCallback);
+  }
+
+  return responseDevice;
+}
+
+std::string vtkSlicerOpenIGTLinkRemoteLogic::GetDeviceContents(vtkObject* device)
+{
+  igtlio::CommandDevicePointer command = reinterpret_cast<igtlio::CommandDevice*>(device);
+  return command->GetContent().content;
+}
+
+//----------------------------------------------------------------------------
+void vtkSlicerOpenIGTLinkRemoteLogic::ProcessDeviceEvents(vtkObject* caller, unsigned long event, void * callData)
+{
+  if (igtlio::Device::CommandResponseReceivedEvent)
+  {
+    igtlio::CommandDevice* device = dynamic_cast<igtlio::CommandDevice*>(caller);
+    if (!device)
+    {
+      vtkErrorMacro("Could not find command device.");
+      return;
+    }
+
+    igtlio::CommandDevicePointer responseDevice = device->GetResponseFromCommandID(device->GetContent().id);
+    if (!responseDevice)
+    {
+      vtkErrorMacro("Could not find command response device.");
+      return;
+    }
+
+    // Do response things.
+    std::cout << "_____RESPONSE______" << std::endl;
+    std::cout << responseDevice->GetDeviceName() << std::endl;
+    std::cout << responseDevice->GetDeviceType() << std::endl;
+    std::cout << responseDevice->GetContent().id << std::endl;
+    std::cout << responseDevice->GetContent().name << std::endl;
+    std::cout << responseDevice->GetContent().content << std::endl;
+
+  }
+}
+
+//----------------------------------------------------------------------------
 bool vtkSlicerOpenIGTLinkRemoteLogic::CancelCommand(vtkSlicerOpenIGTLinkCommand* command)
 {
   if (command == NULL)

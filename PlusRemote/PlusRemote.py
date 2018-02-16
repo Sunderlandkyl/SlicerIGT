@@ -2,7 +2,6 @@ import os.path, datetime
 from __main__ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 import logging
-#from PlusServerLauncherRemoteControlWidget import *
 
 #
 # PlusRemote
@@ -1604,6 +1603,12 @@ class PlusServerLauncherRemoteControlWidget():
     #self.linkInputSelector.connect('currentNodeIDChanged(QString)', self.updateParameterNodeFromGui)
     #self.configFileSelector.connect('currentNodeIDChanged(QString)', self.onSelectConfigFileButton)
 
+    import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
+    self.startServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
+    self.stopServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
+    self.startServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
+
+
   def updatePlusServerRemoteControlButtons(self):
     #TODO: better way to manage button state?
     self.logLevelComboBox.enabled = False
@@ -1669,14 +1674,14 @@ class PlusServerLauncherRemoteControlWidget():
     configFileMessage = ConfigFileMessage(configFileString, self.logLevelComboBox.itemData(self.logLevelComboBox.currentIndex), configFileName)
 
     import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
-    self.startServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.startServerCommand.SetCommandTimeoutSec(self.plusRemote.logic.defaultCommandTimeoutSec);
     self.startServerCommand.SetCommandText(configFileMessage.getMessage())
     self.startServerCommand.SetCommandName('StartServer')
 
-    #self.startServerCommand.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
-    #self.startServerCommand.AddObserver(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent, self.onCommandEvent)
-    self.plusRemote.connectorNode.SendCommand(self.startServerCommand)
+    #self.startServerCommand.RemoveObservers(vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    #self.startServerCommand.AddObserver(vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent, self.onResponseEvent)
+    #self.plusRemote.connectorNode.SendCommand(self.startServerCommand)
+    self.plusRemote.logic.executeCommand(self.startServerCommand, self.plusRemote.connectorNode.GetID(), self.onResponseEvent)
 
     self.waitingForResponse = True
     self.updatePlusServerRemoteControlButtons()
@@ -1688,14 +1693,14 @@ class PlusServerLauncherRemoteControlWidget():
 </Command>
 '''
     import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
-    self.stopServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.stopServerCommand.SetCommandTimeoutSec(self.plusRemote.logic.defaultCommandTimeoutSec);
     self.stopServerCommand.SetCommandText(commandString)
     self.stopServerCommand.SetCommandName('StopServer')
 
-    #self.stopServerCommand.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
-    #self.stopServerCommand.AddObserver(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent, self.onCommandEvent)
-    self.plusRemote.connectorNode.SendCommand(self.stopServerCommand)
+    #self.stopServerCommand.RemoveObservers(vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    #self.stopServerCommand.AddObserver(vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent, self.onResponseEvent)
+    #self.plusRemote.connectorNode.SendCommand(self.stopServerCommand)
+    self.plusRemote.logic.executeCommand(self.stopServerCommand, self.plusRemote.connectorNode.GetID(), self.onResponseEvent)
 
     self.waitingForResponse = True
     self.updatePlusServerRemoteControlButtons()
@@ -1705,14 +1710,31 @@ class PlusServerLauncherRemoteControlWidget():
       return
 
     import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
-    self.startServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.startServerCommand.SetCommandTimeoutSec(self.plusRemote.logic.defaultCommandTimeoutSec);
     self.startServerCommand.SetCommandText(configFileMessage.getMessage())
     self.startServerCommand.SetCommandName('StartServer')
 
   @vtk.calldata_type(vtk.VTK_OBJECT)
-  def onCommandEvent(self, obj, event, callData):
-    commandContents = slicer.modules.openigtlinkremote.logic().GetDeviceContents(callData)
+  def onCommandEvent(self, connectorNode, event, command):
+    commandContents = command.GetCommandText()
+
+    rootElement = vtk.vtkXMLUtilities.ReadElementFromString(commandContents)
+
+    messageElement = rootElement.FindNestedElementWithName("Message")
+    if (messageElement != None):
+      self.onMessageReceived(messageElement)
+
+    serverStartedElement = rootElement.FindNestedElementWithName("ServerStarted")
+    if (serverStartedElement != None):
+      self.onStartServer(serverStartedElement)
+
+    serverStoppedElement = rootElement.FindNestedElementWithName("ServerStopped")
+    if (serverStoppedElement != None):
+      self.onStopServer(serverStoppedElement)
+
+  def onResponseEvent(self, command, event):
+
+    commandContents = command.GetResponseText()
 
     rootElement = vtk.vtkXMLUtilities.ReadElementFromString(commandContents)
 
@@ -1778,6 +1800,7 @@ class PlusServerLauncherRemoteControlWidget():
       #  connectorNodeObserverTag = self.connectorNode.AddObserver(tagEventHandler[0], tagEventHandler[1])
       #  self.connectorNodeObserverTagList.append(connectorNodeObserverTag)
       commandEvent = 119001
+      self.plusRemote.connectorNode.RemoveObservers(commandEvent)
       self.plusRemote.connectorNode.AddObserver(commandEvent, self.onCommandEvent)
       self.plusRemote.connectorNodeObserverTagList.append(commandEvent)
 
