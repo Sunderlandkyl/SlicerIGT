@@ -2,7 +2,7 @@ import os.path, datetime
 from __main__ import vtk, qt, ctk, slicer
 from slicer.ScriptedLoadableModule import *
 import logging
-from PlusServerLauncherRemoteControlWidget import *
+#from PlusServerLauncherRemoteControlWidget import *
 
 #
 # PlusRemote
@@ -708,6 +708,7 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
       self.connectorNodeObserverTagList = []
 
     self.connectorNode = self.linkInputSelector.currentNode()
+    self.logic.connectorNode = self.connectorNode
 
     # Force initial update
     if self.connectorNode:
@@ -739,6 +740,7 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.replyBox.setPlainText("IGTLConnector connected")
     self.captureIDSelector.setDisabled(False)
     self.volumeReconstructorIDSelector.setDisabled(False)
+
     self.logic.getCaptureDeviceIds(self.linkInputSelector.currentNode().GetID(), self.onGetCaptureDeviceCommandResponseReceived)
     self.logic.getVolumeReconstructorDeviceIds(self.linkInputSelector.currentNode().GetID(), self.onGetVolumeReconstructorDeviceCommandResponseReceived)
 
@@ -818,17 +820,12 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     if self.startStopLiveReconstructionButton.isChecked():
       if self.roiNode:
         self.updateVolumeExtentFromROI()
-        self.startStopLiveReconstructionButton.setText("  Stop Live Reconstruction")
-        self.startStopLiveReconstructionButton.setIcon(self.stopIcon)
-        self.startStopLiveReconstructionButton.setToolTip( "If clicked, stop live reconstruction" )
-        self.liveReconstructStatus.setIcon(qt.QMessageBox.Information)
-        self.liveReconstructStatus.setToolTip("Live reconstruction in progress")
-        self.onStartReconstruction()
-      else:
-        self.startStopLiveReconstructionButton.setChecked(False)
-        self.liveReconstructStatus.setIcon(qt.QMessageBox.Warning)
-        self.liveReconstructStatus.setToolTip("No ROI has been set yet. Start with scout scan.")
-        return
+      self.startStopLiveReconstructionButton.setText("  Stop Live Reconstruction")
+      self.startStopLiveReconstructionButton.setIcon(self.stopIcon)
+      self.startStopLiveReconstructionButton.setToolTip( "If clicked, stop live reconstruction" )
+      self.liveReconstructStatus.setIcon(qt.QMessageBox.Information)
+      self.liveReconstructStatus.setToolTip("Live reconstruction in progress")
+      self.onStartReconstruction()
     else:
       self.startStopLiveReconstructionButton.setText("  Start Live Reconstruction")
       self.startStopLiveReconstructionButton.setIcon(self.recordIcon)
@@ -1001,21 +998,27 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.replyBox.setPlainText(statusText)
 
   def onGetCaptureDeviceCommandResponseReceived(self, command, q):
+    print "CAPTURE DEVICE"
+    print command
     self.printCommandResponse(command, q)
     if command.GetStatus() != command.CommandSuccess:
       return
 
     captureDeviceIdsListString = command.GetResponseMessage()
+    print captureDeviceIdsListString
     if captureDeviceIdsListString:
       captureDevicesIdsList = captureDeviceIdsListString.split(",")
     else:
       captureDevicesIdsList = []
 
+    print captureDevicesIdsList
     for i in range(0,len(captureDevicesIdsList)):
       if self.captureIDSelector.findText(captureDevicesIdsList[i]) == -1:
         self.captureIDSelector.addItem(captureDevicesIdsList[i])
 
   def onGetVolumeReconstructorDeviceCommandResponseReceived(self, command, q):
+    print "VOLUME RECONSTRUCTOR"
+    print command
     self.printCommandResponse(command, q)
     if command.GetStatus() != command.CommandSuccess:
       return
@@ -1363,42 +1366,44 @@ class PlusRemoteLogic(ScriptedLoadableModuleLogic):
   def __init__(self, parent = None):
     ScriptedLoadableModuleLogic.__init__(self, parent)
 
+    import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
+
     # Allow having multiple parameter nodes in the scene
     self.isSingletonParameterNode = False
 
     self.defaultCommandTimeoutSec = 30
 
     # Create commands
-    self.cmdGetCaptureDeviceIds = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdGetCaptureDeviceIds = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdGetCaptureDeviceIds.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdGetCaptureDeviceIds.SetCommandName('RequestDeviceIds')
     self.cmdGetCaptureDeviceIds.SetCommandAttribute('DeviceType','VirtualCapture')
-    self.cmdGetReconstructorDeviceIds = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdGetReconstructorDeviceIds = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdGetReconstructorDeviceIds.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdGetReconstructorDeviceIds.SetCommandName('RequestDeviceIds')
     self.cmdGetReconstructorDeviceIds.SetCommandAttribute('DeviceType','VirtualVolumeReconstructor')
-    self.cmdStartVolumeReconstruction = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdStartVolumeReconstruction = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdStartVolumeReconstruction.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdStartVolumeReconstruction.SetCommandName('StartVolumeReconstruction')
-    self.cmdStopVolumeReconstruction = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdStopVolumeReconstruction = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdStopVolumeReconstruction.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdStopVolumeReconstruction.SetCommandName('StopVolumeReconstruction')
-    self.cmdReconstructRecorded = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdReconstructRecorded = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdReconstructRecorded.SetCommandTimeoutSec(2*self.defaultCommandTimeoutSec);
     self.cmdReconstructRecorded.SetCommandName('ReconstructVolume')
-    self.cmdStartRecording = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdStartRecording = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdStartRecording.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdStartRecording.SetCommandName('StartRecording')
-    self.cmdStopRecording = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdStopRecording = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdStopRecording.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdStopRecording.SetCommandName('StopRecording')
-    self.cmdGetVolumeReconstructionSnapshot = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdGetVolumeReconstructionSnapshot = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdGetVolumeReconstructionSnapshot.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdGetVolumeReconstructionSnapshot.SetCommandName('GetVolumeReconstructionSnapshot')
-    self.cmdUpdateTransform = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdUpdateTransform = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdUpdateTransform.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdUpdateTransform.SetCommandName('UpdateTransform')
-    self.cmdSaveConfig = slicer.vtkSlicerOpenIGTLinkCommand()
+    self.cmdSaveConfig = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
     self.cmdSaveConfig.SetCommandTimeoutSec(self.defaultCommandTimeoutSec);
     self.cmdSaveConfig.SetCommandName('SaveConfig')
 
@@ -1406,16 +1411,16 @@ class PlusRemoteLogic(ScriptedLoadableModuleLogic):
 
   def __del__(self):
     # Clean up commands
-    self.cmdGetCaptureDeviceIds.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdGetReconstructorDeviceIds.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdStartVolumeReconstruction.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdStopVolumeReconstruction.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdReconstructRecorded.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdStartRecording.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdStopRecording.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdGetVolumeReconstructionSnapshot.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdUpdateTransform.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    self.cmdSaveConfig.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
+    self.cmdGetCaptureDeviceIds.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdGetReconstructorDeviceIds.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdStartVolumeReconstruction.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdStopVolumeReconstruction.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdReconstructRecorded.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdStartRecording.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdStopRecording.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdGetVolumeReconstructionSnapshot.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdUpdateTransform.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    self.cmdSaveConfig.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
 
   def setDefaultParameters(self, parameterNode):
     parameterList = {'RoiDisplay': False, 'RecordingFilename': "Recording.mha", 'RecordingFilenameCompletion': False, 'OfflineReconstructionSpacing': 3.0, 'OfflineVolumeToReconstruct': 0, 'OfflineOutputVolumeDevice': "RecVol_Reference" , 'OfflineDefaultLayout': True, 'ScoutScanSpacing': 3.0, 'ScoutScanFilename': "ScoutScanRecording.mha", 'ScoutFilenameCompletion': False, 'ScoutDefaultLayout': True, 'LiveReconstructionSpacing': 1.0, 'LiveRecOutputVolumeDevice': "liveReconstruction", 'RoiExtent1': 0.0, 'RoiExtent2': 0.0, 'RoiExtent3': 0.0, 'SnapshotsNumber': 3, 'LiveFilenameCompletion': False, 'LiveDefaultLayout': True}
@@ -1435,9 +1440,11 @@ class PlusRemoteLogic(ScriptedLoadableModuleLogic):
 
 
   def executeCommand(self, command, connectorNodeId, responseCallbackMethod):
-    command.RemoveObservers(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent)
-    command.AddObserver(slicer.vtkSlicerOpenIGTLinkCommand.CommandCompletedEvent, responseCallbackMethod)
-    slicer.modules.openigtlinkremote.logic().SendCommand(command, connectorNodeId)
+    import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
+    #command.RemoveObservers(vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    command.AddObserver(vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent, responseCallbackMethod)
+    #self.connectorNode.SendCommandAndWait(command)
+    self.connectorNode.SendCommand(command)
 
   def getCaptureDeviceIds(self, connectorNodeId, responseCallbackMethod):
     self.executeCommand(self.cmdGetCaptureDeviceIds, connectorNodeId, responseCallbackMethod)
@@ -1504,3 +1511,296 @@ class PlusRemoteLogic(ScriptedLoadableModuleLogic):
   def saveConfig(self, connectorNodeId, filename, responseCallbackMethod):
     self.cmdSaveConfig.SetCommandAttribute('Filename', filename)
     self.executeCommand(self.cmdSaveConfig, connectorNodeId, responseCallbackMethod)
+
+
+import os.path, datetime
+from __main__ import vtk, qt, ctk, slicer
+from slicer.ScriptedLoadableModule import *
+import logging
+
+class PlusServerLauncherRemoteControlWidget():
+  def __init__(self, plusRemote):
+
+    self.plusRemote = plusRemote
+
+    ##self.plusRemoteModuleDirectoryPath = self.plusRemote.plusRemoteModuleDirectoryPath
+    #self.connectIcon = qt.QIcon(self.plusRemoteModuleDirectoryPath+'/Resources/Icons/icon_Connect.png')
+
+    self.layout = qt.QFormLayout()
+
+    self.selectConfigFileButton = qt.QPushButton()
+    #self.selectConfigFileButton.setIcon(self)
+    self.selectConfigFileButton.text = "Load"
+    self.selectConfigFileButton.setEnabled(True)
+    #self.selectConfigFileButton.setToolTip("If clicked, start server")
+    #self.selectConfigFileButton.setSizePolicy(qt.QSizePolicy.Fixed, qt.QSizePolicy.Expanding)
+    self.layout.addRow("Load Config File:", self.selectConfigFileButton)
+
+    self.configFileSelector = slicer.qMRMLNodeComboBox()
+    self.configFileSelector.nodeTypes = ( ("vtkMRMLTextNode"), "" ) #TODO: add correct type of node and/or implement
+    self.configFileSelector.selectNodeUponCreation = True
+    self.configFileSelector.addEnabled = False
+    self.configFileSelector.removeEnabled = True
+    self.configFileSelector.noneEnabled = False
+    self.configFileSelector.showHidden = False
+    self.configFileSelector.showChildNodeTypes = False
+    self.configFileSelector.setMRMLScene( slicer.mrmlScene )
+    self.configFileSelector.setToolTip( "Pick config file" )
+    self.layout.addRow("Config File: ", self.configFileSelector)
+
+    #Move to the same row, use grid and box layouts
+    serverLauncherControlsLayout = qt.QHBoxLayout()
+    self.layout.addRow(serverLauncherControlsLayout)
+
+    self.serverRunning = False
+    self.waitingForResponse = False
+    self.startStopServerButton = qt.QPushButton()
+    #self.startStopServerButton.setIcon(self.connectIcon)
+    self.startStopServerButton.setEnabled(True)
+    self.startStopServerButton.setToolTip("If clicked, start server")
+    self.startStopServerButton.setSizePolicy(qt.QSizePolicy.Expanding, qt.QSizePolicy.Expanding)
+    serverLauncherControlsLayout.addWidget(self.startStopServerButton)
+
+    self.serverStatus = qt.QMessageBox()
+    self.serverStatus.setIcon(qt.QMessageBox.Information)
+    self.serverStatus.setToolTip("Server status")
+    self.serverStatus.setStandardButtons(qt.QMessageBox.NoButton)
+    self.serverStatus.setEnabled(False)
+    serverLauncherControlsLayout.addWidget(self.serverStatus)
+
+    self.LOG_LEVEL_ERROR=1
+    self.LOG_LEVEL_WARNING=2
+    self.LOG_LEVEL_INFO=3
+    self.LOG_LEVEL_DEBUG=4
+    self.LOG_LEVEL_TRACE=5
+
+    self.logLevelComboBox = qt.QComboBox()
+    self.logLevelComboBox.setMaximumSize(200, 1000)
+    self.logLevelComboBox.addItem(str("Error"), self.LOG_LEVEL_ERROR)
+    self.logLevelComboBox.addItem(str("Warning"), self.LOG_LEVEL_WARNING)
+    self.logLevelComboBox.addItem(str("Info"), self.LOG_LEVEL_INFO)
+    self.logLevelComboBox.addItem(str("Debug"), self.LOG_LEVEL_DEBUG)
+    self.logLevelComboBox.addItem(str("Trace"), self.LOG_LEVEL_TRACE)
+    self.logLevelComboBox.setCurrentIndex(2)
+    self.layout.addRow("Server Log Level:", self.logLevelComboBox)
+
+
+    self.serverLogCollapsibleGroupBox = ctk.ctkCollapsibleGroupBox()
+    self.serverLogCollapsibleGroupBox.setTitle("Server log")
+    self.serverLogCollapsibleGroupBox.collapsed = True
+    self.serverLogLayout = qt.QVBoxLayout()
+    self.serverLogCollapsibleGroupBox.setLayout(self.serverLogLayout)
+    self.layout.addRow(self.serverLogCollapsibleGroupBox)
+
+    self.serverLogBox = qt.QPlainTextEdit()
+    self.serverLogBox.setReadOnly(True)
+    self.serverLogLayout.addWidget(self.serverLogBox)
+    self.layout.addRow(self.serverLogLayout)
+
+    self.updatePlusServerRemoteControlButtons()
+
+    self.startStopServerButton.connect('clicked(bool)', self.onStartStopServerButton)
+    self.selectConfigFileButton.connect('clicked(bool)', self.onSelectConfigFileButton)
+    #self.linkInputSelector.connect('currentNodeIDChanged(QString)', self.updateParameterNodeFromGui)
+    #self.configFileSelector.connect('currentNodeIDChanged(QString)', self.onSelectConfigFileButton)
+
+  def updatePlusServerRemoteControlButtons(self):
+    #TODO: better way to manage button state?
+    self.logLevelComboBox.enabled = False
+    self.selectConfigFileButton.enabled = False
+    self.configFileSelector.enabled = False
+    self.startStopServerButton.enabled = False
+    self.serverStatus.enabled = True
+
+    if self.plusRemote.connectorNode == None or self.plusRemote.connectorNode.GetState() != slicer.vtkMRMLIGTLConnectorNode.STATE_CONNECTED:
+      self.logLevelComboBox.enabled = False
+      self.selectConfigFileButton.enabled = False
+      self.configFileSelector.enabled = False
+      self.serverStatus.enabled = False
+      self.startStopServerButton.enabled = False
+      self.startStopServerButton.text = "  Launch Server"
+    elif (self.waitingForResponse):
+      self.startStopServerButton.enabled = False
+      #self.serverStatus.enabled = False
+      if (self.serverRunning):
+        self.startStopServerButton.text = "  Stopping..."
+      else:
+        self.startStopServerButton.text = "  Launching..."
+    else:
+      self.startStopServerButton.enabled = True
+      if (self.serverRunning):
+        self.startStopServerButton.text = "  Stop Server"
+      else:
+        self.startStopServerButton.text = "  Launch Server"
+        #self.serverStatus.enabled = False
+        self.logLevelComboBox.enabled = True
+        self.selectConfigFileButton.enabled = True
+        self.configFileSelector.enabled = True
+
+  def onSelectConfigFileButton(self):
+    filename = qt.QFileDialog.getOpenFileName(slicer.util.mainWindow(), "Select Config File", "", "Config Files (*.xml);;AllFiles (*)")
+    head, tail = os.path.split(filename)
+
+    file = open(filename, 'r')
+    text = file.read()
+    file.close()
+
+    textNode = slicer.vtkMRMLTextNode()
+    textNode.SetName(tail)
+    textNode.SetText(text)
+    slicer.mrmlScene.AddNode(textNode)
+
+  def onStartStopServerButton(self):
+    if (self.serverRunning):
+      self.StopServer()
+    else:
+      self.StartServer()
+
+  def StartServer(self):
+    if (self.plusRemote.connectorNode == None):
+      return
+
+    configFileNode = self.configFileSelector.currentNode()
+    if (configFileNode == None):
+      return
+
+    configFileName = configFileNode.GetName()
+    configFileString = configFileNode.GetText()
+    configFileMessage = ConfigFileMessage(configFileString, self.logLevelComboBox.itemData(self.logLevelComboBox.currentIndex), configFileName)
+
+    import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
+    self.startServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
+    self.startServerCommand.SetCommandTimeoutSec(self.plusRemote.logic.defaultCommandTimeoutSec);
+    self.startServerCommand.SetCommandText(configFileMessage.getMessage())
+    self.startServerCommand.SetCommandName('StartServer')
+
+    #self.startServerCommand.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    #self.startServerCommand.AddObserver(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent, self.onCommandEvent)
+    self.plusRemote.connectorNode.SendCommand(self.startServerCommand)
+
+    self.waitingForResponse = True
+    self.updatePlusServerRemoteControlButtons()
+
+  def StopServer(self):
+    commandString = '''
+<Command>
+  <StopServer/>
+</Command>
+'''
+    import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
+    self.stopServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
+    self.stopServerCommand.SetCommandTimeoutSec(self.plusRemote.logic.defaultCommandTimeoutSec);
+    self.stopServerCommand.SetCommandText(commandString)
+    self.stopServerCommand.SetCommandName('StopServer')
+
+    #self.stopServerCommand.RemoveObservers(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent)
+    #self.stopServerCommand.AddObserver(slicer.vtkSlicerOpenIGTLinkIFCommand.CommandCompletedEvent, self.onCommandEvent)
+    self.plusRemote.connectorNode.SendCommand(self.stopServerCommand)
+
+    self.waitingForResponse = True
+    self.updatePlusServerRemoteControlButtons()
+
+  def GetRemoteControlStatus(self):
+    if (self.plusRemote.connectorNode == None):
+      return
+
+    import vtkSlicerOpenIGTLinkIFModuleCommandPython as vtkSlicerOpenIGTLinkIFModuleCommand
+    self.startServerCommand = vtkSlicerOpenIGTLinkIFModuleCommand.vtkSlicerOpenIGTLinkIFCommand()
+    self.startServerCommand.SetCommandTimeoutSec(self.plusRemote.logic.defaultCommandTimeoutSec);
+    self.startServerCommand.SetCommandText(configFileMessage.getMessage())
+    self.startServerCommand.SetCommandName('StartServer')
+
+  @vtk.calldata_type(vtk.VTK_OBJECT)
+  def onCommandEvent(self, obj, event, callData):
+    commandContents = slicer.modules.openigtlinkremote.logic().GetDeviceContents(callData)
+
+    rootElement = vtk.vtkXMLUtilities.ReadElementFromString(commandContents)
+
+    messageElement = rootElement.FindNestedElementWithName("Message")
+    if (messageElement != None):
+      self.onMessageReceived(messageElement)
+
+    serverStartedElement = rootElement.FindNestedElementWithName("ServerStarted")
+    if (serverStartedElement != None):
+      self.onStartServer(serverStartedElement)
+
+    serverStoppedElement = rootElement.FindNestedElementWithName("ServerStopped")
+    if (serverStoppedElement != None):
+      self.onStopServer(serverStoppedElement)
+
+  # React to server start message. Response or command.
+  def onStartServer(self, serverStartedElement):
+    if (serverStartedElement.GetAttribute("Status") != None):
+      status = serverStartedElement.GetAttribute("Status")
+      if (status.lower() == "on"):
+        self.serverRunning = True
+      else:
+        self.serverRunning = False
+
+    #TODO: should check if success
+    self.waitingForResponse = False
+    self.updatePlusServerRemoteControlButtons()
+
+  # React to server stop message. Response or command.
+  def onStopServer(self, serverStoppedElement):
+    if (serverStoppedElement.GetAttribute("Status") != None):
+      status = serverStoppedElement.GetAttribute("Status")
+      if (status.lower() == "off"):
+        self.serverRunning = False
+      else:
+        self.serverRunning = True
+
+    #TODO: should check if success
+    self.waitingForResponse = False
+    self.updatePlusServerRemoteControlButtons()
+
+  def onMessageReceived(self, messageElement):
+    if (messageElement != None and messageElement.GetAttribute("Text") != None):
+      messageText = messageElement.GetAttribute("Text")
+      fixedMessageText = messageText.replace('###NEWLINE###', '\n')[:-1]
+      self.serverLogBox.appendPlainText(fixedMessageText)
+      print fixedMessageText
+
+  def onStopServerResponse(self, responseDevice, event):
+    #TODO: should check if failure
+    self.waitingForResponse = False
+    self.serverRunning = False
+    self.updatePlusServerRemoteControlButtons()
+
+  def onConnectorNodeSelected(self):
+
+    # Force initial update
+    if self.plusRemote.connectorNode:
+
+      # Add observers for connect/disconnect events
+      #events = [[slicer.vtkMRMLIGTLConnectorNode.ConnectedEvent, self.onConnectorNodeConnected], [slicer.vtkMRMLIGTLConnectorNode.DisconnectedEvent, self.onConnectorNodeDisconnected]]
+      #for tagEventHandler in events:
+      #  connectorNodeObserverTag = self.connectorNode.AddObserver(tagEventHandler[0], tagEventHandler[1])
+      #  self.connectorNodeObserverTagList.append(connectorNodeObserverTag)
+      commandEvent = 119001
+      self.plusRemote.connectorNode.AddObserver(commandEvent, self.onCommandEvent)
+      self.plusRemote.connectorNodeObserverTagList.append(commandEvent)
+
+      # commandResponseEvent = 119002
+      # self.plusRemote.connectorNode.AddObserver(commandResponseEvent, self.onCommandEvent)
+      # self.plusRemote.connectorNodeObserverTagList.append(commandResponseEvent)
+      self.serverLogBox.setPlainText("")
+
+    self.updatePlusServerRemoteControlButtons()
+
+class ConfigFileMessage():
+  def __init__(self, configFileString, verbosity, fileName=""):
+   self.configFileString = configFileString
+   self.verbosity = verbosity
+   self.fileName = fileName
+
+  def getMessage(self):
+    message = '''
+<Command>
+  <StartServer LogLevel="{1}" FileName="{2}">
+    {0}
+  </StartServer>
+</Command>
+'''
+    message = message.format(self.configFileString, self.verbosity, self.fileName)
+    return message
