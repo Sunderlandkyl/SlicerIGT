@@ -81,6 +81,9 @@ protected:
   /// Receives all the events fired by the nodes.
   virtual void ProcessMRMLNodesEvents(vtkObject* caller, unsigned long event, void * callData);
 
+  /// Process device events
+  virtual void ProcessDeviceEvents(vtkObject* caller, unsigned long event, void * callData);
+
   vtkMRMLIGTLQueryNode* GetCommandQueryNode(vtkSlicerOpenIGTLinkCommand* command);
   void ReleaseCommandQueryNode(vtkMRMLIGTLQueryNode* commandQueryNode);
 

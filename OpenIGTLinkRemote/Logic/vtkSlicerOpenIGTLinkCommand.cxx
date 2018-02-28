@@ -153,7 +153,7 @@ const char* vtkSlicerOpenIGTLinkCommand::GetResponseText()
 void vtkSlicerOpenIGTLinkCommand::SetResponseText(const char* text)
 {
   SetResponseTextInternal(text);
-  
+
   if (this->ResponseXML)
     {
     this->ResponseXML->Delete();
