@@ -82,6 +82,11 @@ class PlusRemoteWidget(ScriptedLoadableModuleWidget):
     self.parameterNodeSelector.setToolTip( "Pick parameter set" )
     defaultParametersLayout.addRow("Parameter set: ", self.parameterNodeSelector)
 
+    plusLauncherRemoteCollapsibleButton = ctk.ctkCollapsibleButton()
+    plusLauncherRemoteCollapsibleButton.text = "Plus Server Launcher"
+    self.layout.addWidget(plusLauncherRemoteCollapsibleButton)
+    plusLauncherRemoteLayout = qt.QFormLayout(plusLauncherRemoteCollapsibleButton)
+
     # Parameters
     parametersCollapsibleButton = ctk.ctkCollapsibleButton()
     parametersCollapsibleButton.text = "Parameters"
