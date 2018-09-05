@@ -28,6 +28,7 @@
 // VTK includes
 #include <vtkCollection.h>
 #include <vtkCollectionIterator.h>
+#include <vtkFloatArray.h>
 #include <vtkImageData.h>
 #include <vtkMath.h>
 #include <vtkMatrix4x4.h>
@@ -161,10 +162,14 @@ void vtkSlicerVolumeResliceDriverLogic
   vtkMRMLTransformableNode* newNode = NULL;
 
   vtkSmartPointer< vtkIntArray > events = vtkSmartPointer< vtkIntArray >::New();
+  vtkSmartPointer< vtkFloatArray > priorities = vtkSmartPointer< vtkFloatArray >::New();
   events->InsertNextValue( vtkMRMLTransformableNode::TransformModifiedEvent );
+  priorities->InsertNextValue(VOLUMERESLICEDRIVER_MODIFIED_OBSERVER_PRIORITY);
   events->InsertNextValue( vtkCommand::ModifiedEvent );
+  priorities->InsertNextValue(VOLUMERESLICEDRIVER_MODIFIED_OBSERVER_PRIORITY);
   events->InsertNextValue( vtkMRMLVolumeNode::ImageDataModifiedEvent );
-  vtkSetAndObserveMRMLNodeEventsMacro( newNode, node, events );
+  priorities->InsertNextValue(VOLUMERESLICEDRIVER_MODIFIED_OBSERVER_PRIORITY);
+  vtkSetAndObserveMRMLNodeEventsWithPrioritiesMacro( newNode, node, events, priorities);
   this->ObservedNodes.push_back( newNode );
 
   this->EndModify( wasModifying );

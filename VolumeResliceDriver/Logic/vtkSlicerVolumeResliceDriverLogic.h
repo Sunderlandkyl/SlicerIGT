@@ -30,6 +30,7 @@ class vtkMRMLSliceNode;
 #define VOLUMERESLICEDRIVER_ROTATION_ATTRIBUTE "VolumeResliceDriver.Rotation"
 #define VOLUMERESLICEDRIVER_FLIP_ATTRIBUTE "VolumeResliceDriver.Flip"
 
+#define VOLUMERESLICEDRIVER_MODIFIED_OBSERVER_PRIORITY 10.0
 
 
 /// \ingroup Slicer_QtModules_VolumeResliceDriver
