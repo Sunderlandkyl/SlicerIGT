@@ -73,6 +73,10 @@ protected:
   
 public:
 
+  /// The distance at which the warning should be triggered
+  vtkGetMacro(WarningDistanceMM, double);
+  void SetWarningDistanceMM(double);
+
   /// Distance of the closest point on the model to the tooltip. Computed parameter.
   vtkGetMacro( ClosestDistanceToModelFromToolTip, double );
   vtkSetMacro( ClosestDistanceToModelFromToolTip, double );
@@ -131,6 +135,7 @@ private:
   // the transform is inside the model.
   double ClosestDistanceToModelFromToolTip;
   double ClosestPointOnModel[3];
+  double WarningDistanceMM;
 
 };
 #endif

@@ -383,7 +383,7 @@ void vtkSlicerBreachWarningLogic::UpdateLineToClosestPoint(vtkMRMLBreachWarningN
 
   ruler->SetPosition1(toolTipPosition_Ras);
   ruler->SetPosition2(closestPointOnModel_Ras);
-  if (closestPointDistance<0)
+  if (closestPointDistance < bwNode->GetWarningDistanceMM())
   {    
     ruler->SetName("d (in)");
   }
