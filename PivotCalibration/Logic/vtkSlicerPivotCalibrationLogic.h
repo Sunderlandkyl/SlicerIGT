@@ -50,7 +50,19 @@ class VTK_SLICER_PIVOTCALIBRATION_MODULE_LOGIC_EXPORT vtkSlicerPivotCalibrationL
 {
 public:
 
-  static vtkSlicerPivotCalibrationLogic *New();
+  enum Events
+  {
+    InputTransformAdded = vtkCommand::UserEvent + 173,
+    CalibrationCompleteEvent
+  };
+
+  enum CalibrationMode
+  {
+    PIVOT_CALIBRATION,
+    SPIN_CALIBRATION
+  };
+
+  static vtkSlicerPivotCalibrationLogic* New();
   vtkTypeMacro(vtkSlicerPivotCalibrationLogic, vtkSlicerModuleLogic);
   void PrintSelf(ostream& os, vtkIndent indent) override;
 
@@ -61,74 +73,114 @@ public:
   // Add a tool transforms automatically by observing transform changes
   vtkGetMacro(RecordingState, bool);
   vtkSetMacro(RecordingState, bool);
-  void SetAndObserveTransformNode( vtkMRMLLinearTransformNode* );
+  void SetAndObserveTransformNode(vtkMRMLLinearTransformNode*);
 
   // Add a single tool transform manually
-  void AddToolToReferenceMatrix( vtkMatrix4x4* );
+  void AddToolToReferenceMatrix(vtkMatrix4x4*);
 
   // Computes calibration results.
   // By default, automatically flips the shaft direction to be consistent with the needle orientation protocol.
   // Returns with false on failure
-  bool ComputePivotCalibration( bool autoOrient = true );
+  bool ComputePivotCalibration(bool autoOrient = true);
 
   // Computes calibration results.
   // By default, automatically flips the shaft direction to be consistent with the needle orientation protocol.
   // Optionally, snaps the rotation to be a 90 degree rotation about one of the coordinate axes.
   // Returns with false on failure
-  bool ComputeSpinCalibration( bool snapRotation = false, bool autoOrient = true ); // Note: The neede orientation protocol assumes that the shaft of the tool lies along the negative z-axis
+  bool ComputeSpinCalibration(bool snapRotation = false, bool autoOrient = true); // Note: The neede orientation protocol assumes that the shaft of the tool lies along the negative z-axis
 
   // Flip the direction of the shaft axis
   void FlipShaftDirection();
 
   // Get calibration results
-  void GetToolTipToToolTranslation( vtkMatrix4x4* );
-  void GetToolTipToToolRotation( vtkMatrix4x4* );
-  void GetToolTipToToolMatrix( vtkMatrix4x4* );
-  void SetToolTipToToolMatrix( vtkMatrix4x4* );
+  void GetToolTipToToolTranslation(vtkMatrix4x4*);
+  void GetToolTipToToolRotation(vtkMatrix4x4*);
+  void GetToolTipToToolMatrix(vtkMatrix4x4*);
+  void SetToolTipToToolMatrix(vtkMatrix4x4*);
   vtkGetMacro(PivotRMSE, double);
   vtkGetMacro(SpinRMSE, double);
 
   // Returns human-readable description of the error occurred (non-empty if ComputePivotCalibration returns with failure)
-  vtkGetMacro(ErrorText, std::string);
-  
+  std::string GetErrorText();
+
+  /// TODO: name
+  int GetNumberOfPoses();
+
+  /// 
+  int GetErrorCode();
+
+  vtkGetMacro(CalibrationMode, int);
+  vtkSetMacro(CalibrationMode, int);
+
+  vtkGetMacro(AutoCalibrationStopWhenComplete, bool);
+  vtkSetMacro(AutoCalibrationStopWhenComplete, bool);
+  vtkBooleanMacro(AutoCalibrationStopWhenComplete, bool);
+
+  vtkGetMacro(AutoCalibrationEnabled, bool);
+  vtkSetMacro(AutoCalibrationEnabled, bool);
+  vtkBooleanMacro(AutoCalibrationEnabled, bool);
+
+  vtkGetMacro(AutoCalibrationNumberOfPoints, int);
+  vtkSetMacro(AutoCalibrationNumberOfPoints, int);
+
+  vtkGetMacro(AutoCalibrationStopTargetError, double);
+  vtkSetMacro(AutoCalibrationStopTargetError, double);
+
+  // TODO
+  int GetPoseBucketSize();
+  void SetPoseBucketSize(int bucketSize);
+
+  double GetMinimumOrientationDifferenceDeg();
+  void SetMinimumOrientationDifferenceDeg(double);
+
+  int GetMaximumNumberOfPoseBuckets();
+  void SetMaximumNumberOfPoseBuckets(int);
+
+  double GetMaximumPoseBucketError();
+  void SetMaximumPoseBucketError(double);
+
+  double GetPositionDifferenceThresholdMm();
+  void SetPositionDifferenceThresholdMm(double);
+
+  double GetOrientationDifferenceThresholdDegrees();
+  void SetOrientationDifferenceThresholdDegrees(double);
+
 protected:
   vtkSlicerPivotCalibrationLogic();
   virtual ~vtkSlicerPivotCalibrationLogic();
   
   void ProcessMRMLNodesEvents( vtkObject* caller, unsigned long event, void* callData ) override;
 
-  // Returns the orientation difference in degrees between two 4x4 homogeneous transformation matrix, in degrees.
-  double GetOrientationDifferenceDeg(vtkMatrix4x4* aMatrix, vtkMatrix4x4* bMatrix);
-  
-  // Computes the maximum orientation difference in degrees between the first tool transformation
-  // and all the others. Used for determining if there was enough variation in the input data.
-  double GetMaximumToolOrientationDifferenceDeg();
+  static void ProcessPivotCalibrationAlgorithmEvents(vtkObject* caller, unsigned long event, void* clientData, void* callData);
 
-  // Verify whether the tool's shaft is in the same direction as the ToolTip to Tool vector.
-  // Rotate the ToolTip coordinate frame by 180 degrees about the secondary axis to make the 
-  // shaft in the same direction as the ToolTip to Tool vector, if this is not already the case.
-  void UpdateShaftDirection();
+  bool ComputeAutoCalibration();
 
-  // Helper method to compute the secondary axis, given a shaft axis
-  static vnl_vector< double > ComputeSecondaryAxis( vnl_vector< double > shaftAxis_ToolTip );
+  vtkSetMacro(PivotRMSE, double);
+  vtkSetMacro(SpinRMSE, double);
 
-  
+  class vtkInternal;
+  vtkInternal* Internal;
+
 private:
 
   vtkSlicerPivotCalibrationLogic(const vtkSlicerPivotCalibrationLogic&); // Not implemented
   void operator=(const vtkSlicerPivotCalibrationLogic&);               // Not implemented
 
   // Calibration inputs
-  double MinimumOrientationDifferenceDeg;
-  std::vector< vtkMatrix4x4* > ToolToReferenceMatrices;
   vtkMRMLLinearTransformNode* ObservedTransformNode;
   bool RecordingState;
+
+  int CalibrationMode{ PIVOT_CALIBRATION };
 
   // Calibration results
   vtkMatrix4x4* ToolTipToToolMatrix;
   double PivotRMSE;
-  double SpinRMSE; 
-  std::string ErrorText;
+  double SpinRMSE;
+
+  double AutoCalibrationStopTargetError{ 3.0 };
+  int AutoCalibrationNumberOfPoints{ 50 };
+  bool AutoCalibrationStopWhenComplete{ false };
+  bool AutoCalibrationEnabled{ false };
 };
 
 #endif
