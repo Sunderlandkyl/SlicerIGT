@@ -1,0 +1,30 @@
+# Builds this extension against the Slicer build published by the Slicer
+# repository's "Build" workflow.
+#
+# Everything the build needs is in the workflow Slicer provides: restoring the
+# published build tree, configuring, building, testing, packaging, loading the
+# result into Slicer and uploading the package.
+name: Build against the Slicer nightly
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      contents: write
+    # On Slicer/Slicer this is Slicer/Slicer/.github/workflows/extension-build.yml@main
+    uses: Sunderlandkyl/Slicer/.github/workflows/extension-build.yml@ci/github-actions-build
+    with:
+      # web: for SlicerWeb, against the web build tree of the nightly.
+      platforms: linux,macos,windows,web
+      slicer-repository: Sunderlandkyl/Slicer
+      slicer-ref: ci/github-actions-build
+      # To the nightly release, which says what Slicer each package was built
+      # against; a pull request's token cannot write to the releases.
+      publish: ${{ github.event_name != 'pull_request' }}
